@@ -2,7 +2,9 @@ package com.indiaexplorer.controller;
 
 import com.indiaexplorer.model.User;
 import com.indiaexplorer.repository.UserRepository;
+import com.indiaexplorer.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value; // ✅ Added for .env support
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,6 +25,57 @@ public class AuthController {
     @Autowired
     private BCryptPasswordEncoder encoder;
 
+    @Autowired
+    private EmailService emailService;
+
+    // ✅ SECURE: Pulling the Admin Key from Environment Variables
+    // If not set, it defaults to a secure internal string
+    @Value("${MY_ADMIN_MASTER_KEY:INDIA_ADMIN_2026}") 
+    private String masterAdminKey;
+
+    // Temporary in-memory storage for OTPs (Email -> OTP)
+    private Map<String, String> otpStorage = new ConcurrentHashMap<>();
+
+    // --- OTP METHODS ---
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        // Generate random 6-digit OTP
+        String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
+        
+        // Save to memory
+        otpStorage.put(email, otp);
+
+        try {
+            emailService.sendOtpEmail(email, otp);
+            return ResponseEntity.ok(Map.of("message", "OTP sent successfully to " + email));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Error sending email: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String userOtp = request.get("otp");
+
+        String serverOtp = otpStorage.get(email);
+
+        if (serverOtp != null && serverOtp.equals(userOtp)) {
+            // Success: OTP matches
+            return ResponseEntity.ok(Map.of("status", "success", "message", "OTP Verified!"));
+        } else {
+            return ResponseEntity.status(401).body(Map.of("status", "error", "message", "Invalid or expired OTP"));
+        }
+    }
+
+    // --- REGISTRATION & LOGIN ---
+
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody User user) {
         Map<String, Object> response = new HashMap<>();
@@ -32,9 +86,9 @@ public class AuthController {
             return ResponseEntity.status(400).body(response);
         }
 
+        // 🛡️ SECRET KEY CHECK: Now using the secure variable 'masterAdminKey'
         if ("ADMIN".equalsIgnoreCase(user.getRole().name())) {
-            String MASTER_KEY = "INDIA_ADMIN_2026"; 
-            if (user.getAdminKey() == null || !user.getAdminKey().equals(MASTER_KEY)) {
+            if (user.getAdminKey() == null || !user.getAdminKey().equals(masterAdminKey)) {
                 response.put("status", "error");
                 response.put("message", "Invalid Admin Passcode! Access Denied.");
                 return ResponseEntity.status(403).body(response);
@@ -43,6 +97,9 @@ public class AuthController {
 
         user.setPassword(encoder.encode(user.getPassword()));
         userRepository.save(user);
+
+        // Optional: Clean up OTP after successful registration
+        otpStorage.remove(user.getEmail());
 
         response.put("status", "success");
         response.put("message", "User registered successfully!");
@@ -64,15 +121,13 @@ public class AuthController {
         return res;
     }
 
+    // --- USER MANAGEMENT ---
+
     @GetMapping("/users")
     public List<User> getAll() {
         return userRepository.findAll();
     }
 
-    /**
-     * ✅ NEW: Admin Power to remove users
-     * This endpoint handles the removal of test or unauthorized accounts.
-     */
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         Map<String, String> response = new HashMap<>();

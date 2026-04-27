@@ -25,6 +25,10 @@ public class Monument {
     @Column(nullable = false)
     private String region;
 
+    // ✅ Added tour_url column for Content Creators to paste Google Embed links
+    @Column(name = "tour_url", length = 1000)
+    private String tourUrl;
+
     // Default Constructor (Required by JPA)
     public Monument() {}
 
@@ -46,4 +50,8 @@ public class Monument {
 
     public String getRegion() { return region; }
     public void setRegion(String region) { this.region = region; }
+
+    // ✅ New Getter and Setter for tourUrl
+    public String getTourUrl() { return tourUrl; }
+    public void setTourUrl(String tourUrl) { this.tourUrl = tourUrl; }
 }

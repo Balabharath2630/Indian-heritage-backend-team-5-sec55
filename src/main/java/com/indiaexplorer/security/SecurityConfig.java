@@ -1,4 +1,4 @@
-package com.indiaexplorer.config;
+package com.indiaexplorer.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -7,11 +7,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -26,23 +24,26 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) 
-            // 1. Enable CORS using the configuration source below
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .authorizeHttpRequests(auth -> auth
-                // 2. Open the gates for your cleanup and setup phase
-                .anyRequest().permitAll() 
+                // ✅ Permit all Auth endpoints (OTP, Login, Register)
+                .requestMatchers("/api/auth/**").permitAll()
+                // ✅ Permit all Monument endpoints (Getting list, Adding new ones)
+                .requestMatchers("/api/monuments/**").permitAll()
+                // Any other request (like Admin panels) still requires login
+                .anyRequest().authenticated()
             );
-            
+
         return http.build();
     }
 
-    // 3. Define a global CORS policy that lets React talk to Spring Boot
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // Allow your React Frontend
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
