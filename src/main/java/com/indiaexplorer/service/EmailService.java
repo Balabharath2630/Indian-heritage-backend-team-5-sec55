@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class EmailService {
@@ -28,21 +29,29 @@ public class EmailService {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
             conn.setDoOutput(true);
 
+            // Send request
             try (OutputStream os = conn.getOutputStream()) {
-                os.write(jsonBody.getBytes());
+                os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
                 os.flush();
             }
 
             int responseCode = conn.getResponseCode();
 
+            // ✅ DO NOT CRASH — just log
             if (responseCode != 200 && responseCode != 202) {
-                throw new RuntimeException("Failed to send email. HTTP Code: " + responseCode);
+                System.out.println("❌ Resend failed. HTTP Code: " + responseCode);
+                return;
             }
 
+            System.out.println("✅ OTP email sent successfully!");
+
         } catch (Exception e) {
-            throw new RuntimeException("Error sending email: " + e.getMessage());
+            // ❗ Prevent backend crash (502)
+            System.out.println("❌ Email sending error: " + e.getMessage());
         }
     }
 }
