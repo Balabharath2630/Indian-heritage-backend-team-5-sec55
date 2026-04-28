@@ -23,14 +23,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) 
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 // ✅ Permit all Auth endpoints (OTP, Login, Register)
                 .requestMatchers("/api/auth/**").permitAll()
-                // ✅ Permit all Monument endpoints (Getting list, Adding new ones)
+                // ✅ Permit all Monument endpoints
                 .requestMatchers("/api/monuments/**").permitAll()
-                // Any other request (like Admin panels) still requires login
+                // Other requests require authentication
                 .anyRequest().authenticated()
             );
 
@@ -40,14 +40,25 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow your React Frontend
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+
+        // ✅ Allow both local + deployed frontend
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "https://indian-heritage-frontend-team-5-sec.vercel.app"
+        ));
+
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        ));
+
+        // ✅ Allow all headers (important for preflight requests)
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 }
