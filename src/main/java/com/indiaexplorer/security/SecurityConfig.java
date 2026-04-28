@@ -8,6 +8,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.Arrays;
 
@@ -24,7 +25,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
+
+            // ✅ Enable CORS with custom config
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
             .authorizeHttpRequests(auth -> auth
                 // ✅ Public APIs
                 .requestMatchers("/api/auth/**").permitAll()
@@ -33,7 +37,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/tours/**").permitAll()
                 .requestMatchers("/api/comments/**").permitAll()
 
-                // 🔒 Any other request requires authentication
+                // 🔒 Others need authentication
                 .anyRequest().authenticated()
             );
 
@@ -41,25 +45,29 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ Allow localhost + ALL Vercel deployments
+        // ✅ IMPORTANT: Add ALL your domains
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:5173",
-            "https://*.vercel.app"
+                "http://localhost:5173",
+                "https://*.vercel.app",
+                "https://incredibleindiaweb.online"
         ));
 
-        // ✅ Allowed HTTP methods
+        // ✅ Methods
         configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
-        // ✅ Allow all headers (important for preflight)
+        // ✅ Headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // ✅ Allow credentials (cookies/auth if needed)
+        // ✅ Allow credentials (needed if using cookies/auth)
         configuration.setAllowCredentials(true);
+
+        // ✅ (Optional but recommended)
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
