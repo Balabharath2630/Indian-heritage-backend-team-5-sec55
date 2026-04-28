@@ -16,7 +16,7 @@ public class EmailService {
     public void sendOtpEmail(String toEmail, String otp) {
         try {
             String jsonBody = "{\n" +
-                    "  \"from\": \"onboarding@resend.dev\",\n" +
+                    "  \"from\": \"Balabharath <balabharath.ai@gmail.com>\",\n" +
                     "  \"to\": [\"" + toEmail + "\"],\n" +
                     "  \"subject\": \"Verify Your Incredible India Account\",\n" +
                     "  \"html\": \"<h2>Your OTP is: " + otp + "</h2><p>This code will expire in 5 minutes.</p>\"\n" +
@@ -26,7 +26,7 @@ public class EmailService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
