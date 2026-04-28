@@ -44,10 +44,10 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ Allow frontend (local + deployed)
-        configuration.setAllowedOrigins(Arrays.asList(
+        // ✅ Allow localhost + ALL Vercel deployments
+        configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:5173",
-            "https://indian-heritage-frontend-team-5-sec.vercel.app"
+            "https://*.vercel.app"
         ));
 
         // ✅ Allowed HTTP methods
