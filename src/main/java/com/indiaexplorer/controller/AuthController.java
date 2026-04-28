@@ -4,7 +4,7 @@ import com.indiaexplorer.model.User;
 import com.indiaexplorer.repository.UserRepository;
 import com.indiaexplorer.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value; // ✅ Added for .env support
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173") 
+// ❌ REMOVED @CrossOrigin (important fix)
 public class AuthController {
 
     @Autowired
@@ -28,12 +28,9 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
-    // ✅ SECURE: Pulling the Admin Key from Environment Variables
-    // If not set, it defaults to a secure internal string
-    @Value("${MY_ADMIN_MASTER_KEY:INDIA_ADMIN_2026}") 
+    @Value("${MY_ADMIN_MASTER_KEY:INDIA_ADMIN_2026}")
     private String masterAdminKey;
 
-    // Temporary in-memory storage for OTPs (Email -> OTP)
     private Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
     // --- OTP METHODS ---
@@ -45,10 +42,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
         }
 
-        // Generate random 6-digit OTP
         String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
-        
-        // Save to memory
         otpStorage.put(email, otp);
 
         try {
@@ -67,7 +61,6 @@ public class AuthController {
         String serverOtp = otpStorage.get(email);
 
         if (serverOtp != null && serverOtp.equals(userOtp)) {
-            // Success: OTP matches
             return ResponseEntity.ok(Map.of("status", "success", "message", "OTP Verified!"));
         } else {
             return ResponseEntity.status(401).body(Map.of("status", "error", "message", "Invalid or expired OTP"));
@@ -86,7 +79,6 @@ public class AuthController {
             return ResponseEntity.status(400).body(response);
         }
 
-        // 🛡️ SECRET KEY CHECK: Now using the secure variable 'masterAdminKey'
         if ("ADMIN".equalsIgnoreCase(user.getRole().name())) {
             if (user.getAdminKey() == null || !user.getAdminKey().equals(masterAdminKey)) {
                 response.put("status", "error");
@@ -98,7 +90,6 @@ public class AuthController {
         user.setPassword(encoder.encode(user.getPassword()));
         userRepository.save(user);
 
-        // Optional: Clean up OTP after successful registration
         otpStorage.remove(user.getEmail());
 
         response.put("status", "success");
