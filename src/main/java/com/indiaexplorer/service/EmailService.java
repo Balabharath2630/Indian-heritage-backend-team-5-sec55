@@ -17,7 +17,7 @@ public class EmailService {
     public void sendOtpEmail(String toEmail, String otp) {
         try {
             String jsonBody = "{\n" +
-                    "  \"from\": \"onboarding@resend.dev\",\n" +
+                    "  \"from\": \"OTP Service <otp@incredibleindiaweb.online>\",\n" +
                     "  \"to\": [\"" + toEmail + "\"],\n" +
                     "  \"subject\": \"Verify Your Incredible India Account\",\n" +
                     "  \"html\": \"<h2>Your OTP is: " + otp + "</h2><p>This code will expire in 5 minutes.</p>\"\n" +
@@ -41,7 +41,6 @@ public class EmailService {
 
             int responseCode = conn.getResponseCode();
 
-            // Do NOT crash backend
             if (responseCode != 200 && responseCode != 202) {
                 System.out.println("❌ Resend failed. HTTP Code: " + responseCode);
                 return;
