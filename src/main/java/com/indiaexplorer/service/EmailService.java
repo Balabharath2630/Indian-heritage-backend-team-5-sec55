@@ -17,10 +17,12 @@ public class EmailService {
     public void sendOtpEmail(String toEmail, String otp) {
         try {
             String jsonBody = "{\n" +
-                    "  \"from\": \"OTP Service <otp@incredibleindiaweb.online>\",\n" +
+                    "  \"from\": \"Incredible India <otp@incredibleindiaweb.online>\",\n" +
                     "  \"to\": [\"" + toEmail + "\"],\n" +
-                    "  \"subject\": \"Verify Your Incredible India Account\",\n" +
-                    "  \"html\": \"<h2>Your OTP is: " + otp + "</h2><p>This code will expire in 5 minutes.</p>\"\n" +
+                    "  \"subject\": \"Password Reset OTP - Incredible India\",\n" +
+                    "  \"html\": \"<h2>Your OTP is: " + otp + "</h2>" +
+                    "<p>Use this OTP to reset your password.</p>" +
+                    "<p><b>This OTP will expire in 5 minutes.</b></p>\"\n" +
                     "}";
 
             URL url = new URL("https://api.resend.com/emails");
@@ -29,6 +31,7 @@ public class EmailService {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
             conn.setRequestProperty("Content-Type", "application/json");
+
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
             conn.setDoOutput(true);
@@ -41,12 +44,11 @@ public class EmailService {
 
             int responseCode = conn.getResponseCode();
 
-            if (responseCode != 200 && responseCode != 202) {
+            if (responseCode == 200 || responseCode == 202) {
+                System.out.println("✅ OTP email sent successfully!");
+            } else {
                 System.out.println("❌ Resend failed. HTTP Code: " + responseCode);
-                return;
             }
-
-            System.out.println("✅ OTP email sent successfully!");
 
         } catch (Exception e) {
             System.out.println("❌ Email sending error: " + e.getMessage());

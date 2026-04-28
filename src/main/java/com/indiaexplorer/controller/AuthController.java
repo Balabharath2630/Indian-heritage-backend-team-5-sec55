@@ -16,7 +16,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
-// ❌ REMOVED @CrossOrigin (important fix)
 public class AuthController {
 
     @Autowired
@@ -33,11 +32,12 @@ public class AuthController {
 
     private Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
-    // --- OTP METHODS ---
+    // ---------------- OTP METHODS ----------------
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
+
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
         }
@@ -49,7 +49,7 @@ public class AuthController {
             emailService.sendOtpEmail(email, otp);
             return ResponseEntity.ok(Map.of("message", "OTP sent successfully to " + email));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Error sending email: " + e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of("message", "Error sending email"));
         }
     }
 
@@ -67,12 +67,70 @@ public class AuthController {
         }
     }
 
-    // --- REGISTRATION & LOGIN ---
+    // ---------------- FORGOT PASSWORD ----------------
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+
+        String otp = String.valueOf((int)(Math.random() * 900000) + 100000);
+        otpStorage.put(email, otp);
+
+        try {
+            emailService.sendOtpEmail(email, otp);
+            return ResponseEntity.ok(Map.of("message", "OTP sent for password reset"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Error sending email"));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
+
+        if (email == null || otp == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing fields"));
+        }
+
+        String storedOtp = otpStorage.get(email);
+
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid OTP"));
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+
+        otpStorage.remove(email);
+
+        return ResponseEntity.ok(Map.of("message", "Password reset successful"));
+    }
+
+    // ---------------- REGISTER & LOGIN ----------------
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody User user) {
+
         Map<String, Object> response = new HashMap<>();
-        
+
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             response.put("status", "error");
             response.put("message", "Email is already registered!");
@@ -99,6 +157,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody User loginUser) {
+
         User user = userRepository.findByEmail(loginUser.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
@@ -112,7 +171,7 @@ public class AuthController {
         return res;
     }
 
-    // --- USER MANAGEMENT ---
+    // ---------------- USER MANAGEMENT ----------------
 
     @GetMapping("/users")
     public List<User> getAll() {
@@ -121,7 +180,9 @@ public class AuthController {
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
+
         Map<String, String> response = new HashMap<>();
+
         try {
             if (!userRepository.existsById(id)) {
                 response.put("message", "User not found.");
@@ -131,6 +192,7 @@ public class AuthController {
             userRepository.deleteById(id);
             response.put("message", "User deleted successfully.");
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             response.put("message", "Error: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
