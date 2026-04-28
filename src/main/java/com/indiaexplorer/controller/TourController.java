@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tours")
-@CrossOrigin(origins = "*")
+// ❌ Removed @CrossOrigin (handled globally)
 public class TourController {
 
     @Autowired

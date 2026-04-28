@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
-@CrossOrigin(origins = "http://localhost:5173")
+// ❌ Removed @CrossOrigin (important fix)
 public class PostController {
 
     private final PostService postService;
@@ -24,7 +24,7 @@ public class PostController {
         this.postService = postService;
     }
 
-    // GET all posts (Will include User object because of EAGER fetch in Post.java)
+    // GET all posts
     @GetMapping
     public List<Post> getAllPosts() {
         return postService.findAll();
@@ -38,11 +38,11 @@ public class PostController {
             return ResponseEntity.badRequest().body("Error: User ID is required to post.");
         }
 
-        // 2. Fetch the full User from DB (to get their Name and Role)
+        // 2. Fetch the full User from DB
         User author = userRepository.findById(post.getUser().getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 3. Attach the full User object to the Post
+        // 3. Attach the full User object
         post.setUser(author);
 
         // 4. Save the post

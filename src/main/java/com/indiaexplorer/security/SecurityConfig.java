@@ -26,11 +26,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // ✅ Permit all Auth endpoints (OTP, Login, Register)
+                // ✅ Public APIs
                 .requestMatchers("/api/auth/**").permitAll()
-                // ✅ Permit all Monument endpoints
                 .requestMatchers("/api/monuments/**").permitAll()
-                // Other requests require authentication
+                .requestMatchers("/api/posts/**").permitAll()
+                .requestMatchers("/api/tours/**").permitAll()
+                .requestMatchers("/api/comments/**").permitAll()
+
+                // 🔒 Any other request requires authentication
                 .anyRequest().authenticated()
             );
 
@@ -41,19 +44,21 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ Allow both local + deployed frontend
+        // ✅ Allow frontend (local + deployed)
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173",
             "https://indian-heritage-frontend-team-5-sec.vercel.app"
         ));
 
+        // ✅ Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
             "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
-        // ✅ Allow all headers (important for preflight requests)
+        // ✅ Allow all headers (important for preflight)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
+        // ✅ Allow credentials (cookies/auth if needed)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

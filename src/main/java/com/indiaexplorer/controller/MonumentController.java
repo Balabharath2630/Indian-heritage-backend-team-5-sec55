@@ -11,11 +11,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/monuments")
-@CrossOrigin(
-    origins = "http://localhost:5173", 
-    allowedHeaders = "*", 
-    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
-) 
+// ❌ Removed @CrossOrigin (important fix)
 public class MonumentController {
 
     private final MonumentService monumentService;
@@ -102,7 +98,6 @@ public class MonumentController {
             return ResponseEntity.ok("✨ Monument deleted from platform!");
             
         } catch (Exception e) {
-            // This captures real crashes (like DB connection issues)
             e.printStackTrace(); 
             return ResponseEntity.status(500).body("Internal Server Error: " + e.getMessage());
         }
