@@ -8,6 +8,12 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     
-    // This allows you to fetch all comments for a specific post easily
+    // ✅ Existing: all comments for a post
     List<Comment> findByPostIdOrderByCreatedAtDesc(Long postId);
+
+    // ✅ NEW: get only main comments (no parent)
+    List<Comment> findByPostIdAndParentCommentIsNullOrderByCreatedAtDesc(Long postId);
+
+    // ✅ NEW: get replies of a comment
+    List<Comment> findByParentCommentIdOrderByCreatedAtAsc(Long parentId);
 }
